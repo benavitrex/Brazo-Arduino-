@@ -1,0 +1,63 @@
+#include <Servo.h>
+
+Servo inferior, superior, pinza;
+
+// ---------- Pines ----------
+const int PIN_INF = 9;
+const int PIN_SUP = 10;
+const int PIN_PIN = 11;
+
+const int J1X = A0;   // joystick 1, eje X -> inferior
+const int J1Y = A1;   // joystick 1, eje Y -> superior
+const int J2Y = A3;   // joystick 2, eje Y -> pinza
+
+// ---------- Ajustes que puedes cambiar ----------
+// Si un servo gira al revés de lo que quieres, pon true
+const bool INV_INF = false;
+const bool INV_SUP = false;
+const bool INV_PIN = false;
+
+// Límites de seguridad (ajústalos a tu estructura)
+const int MIN_ANG = 10;
+const int MAX_ANG = 170;
+const int PIN_MIN = 30;    // pinza cerrada
+const int PIN_MAX = 120;   // pinza abierta
+
+const int ZONA     = 80;   // zona muerta: más grande = menos sensible
+const int PASO_MAX = 3;    // velocidad máxima (grados por ciclo)
+const int RETARDO  = 15;   // ms entre ciclos
+
+// ---------- Variables ----------
+int aInf = 90, aSup = 90, aPin = 90;    // ángulos actuales
+int cInf = 512, cSup = 512, cPin = 512; // centro de cada eje
+
+int leerCentro(int pin) {
+  long suma = 0;
+  for (int i = 0; i < 10; i++) { suma += analogRead(pin); delay(5); }
+  int c = suma / 10;
+  // Si el reposo sale muy lejos de 512, se usa 512 por seguridad
+  if (abs(c - 512) > 150) c = 512;
+  return c;
+}
+
+int mover(int angulo, int lectura, int centro, bool invertir, int minA, int maxA) {
+  int d = lectura - centro;
+  if (abs(d) > ZONA) {
+    int paso = constrain(map(abs(d), ZONA, 512, 1, PASO_MAX), 1, PASO_MAX);
+    if (d < 0) paso = -paso;
+    if (invertir) paso = -paso;
+    angulo += paso;
+  }
+  return constrain(angulo, minA, maxA);
+}
+
+void setup() {
+  // No toques los joysticks mientras se enciende
+  cInf = leerCentro(J1X);
+  cSup = leerCentro(J1Y);
+  cPin = leerCentro(J2Y);
+
+  inferior.attach(PIN_INF);  inferior.write(aInf);  delay(300);
+  superior.attach(PIN_SUP);  superior.write(aSup);  delay(300);
+  pinza.attach(PIN_PIN);     pinza.write(aPin);     delay(300);
+}
